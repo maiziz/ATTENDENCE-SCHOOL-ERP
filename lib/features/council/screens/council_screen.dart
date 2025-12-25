@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:attendence_school_erp/features/grading/providers/grading_provider.dart';
-import 'package:attendence_school_erp/core/models/student.dart';
 
 class CouncilScreen extends ConsumerStatefulWidget {
   const CouncilScreen({super.key});

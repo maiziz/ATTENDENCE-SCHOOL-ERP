@@ -55,8 +55,10 @@ dependencies:
   
   # Utilities
   intl: ^0.20.1
-  timelines: 0.1.0
   fl_chart: 0.69.0
+  pluto_grid: ^8.1.0
+  time_planner: ^0.1.2+1
+  timelines_plus: ^1.0.8
 
 dev_dependencies:
   flutter_test:

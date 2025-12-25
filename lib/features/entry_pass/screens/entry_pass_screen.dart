@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:attendence_school_erp/features/entry_pass/providers/entry_pass_provider.dart';
 import 'package:attendence_school_erp/features/auth/providers/auth_provider.dart';
 import 'package:attendence_school_erp/core/models/student.dart';
-import 'package:attendence_school_erp/core/enums/enums.dart';
 
 class EntryPassScreen extends ConsumerStatefulWidget {
   const EntryPassScreen({super.key});

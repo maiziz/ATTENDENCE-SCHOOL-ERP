@@ -10,6 +10,7 @@ import 'package:attendence_school_erp/features/observations/screens/observations
 import 'package:attendence_school_erp/features/dashboard/providers/dashboard_provider.dart';
 import 'package:attendence_school_erp/features/entry_pass/screens/entry_pass_screen.dart';
 import 'package:attendence_school_erp/features/council/screens/council_screen.dart';
+import 'package:attendence_school_erp/features/attendance/screens/lesson_log_screen.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -33,6 +34,17 @@ class DashboardScreen extends ConsumerWidget {
               dashState.directorStats == null) {
             Future.microtask(
               () => ref.read(dashboardProvider.notifier).loadDirectorStats(),
+            );
+          } else if ((profile.role == UserRole.general_supervisor ||
+                  profile.role == UserRole.field_supervisor) &&
+              dashState.supervisorStats == null) {
+            Future.microtask(
+              () => ref.read(dashboardProvider.notifier).loadSupervisorStats(),
+            );
+          } else if (profile.role == UserRole.economist &&
+              dashState.economistStats == null) {
+            Future.microtask(
+              () => ref.read(dashboardProvider.notifier).loadEconomistStats(),
             );
           } else if ((profile.role == UserRole.teacher ||
                   profile.role == UserRole.head_teacher) &&
@@ -207,8 +219,13 @@ class DashboardScreen extends ConsumerWidget {
   ) {
     if (role == UserRole.director) {
       return _DirectorStatsWidgets(stats: state.directorStats);
+    } else if (role == UserRole.general_supervisor ||
+        role == UserRole.field_supervisor) {
+      return _SupervisorStatsWidgets(stats: state.supervisorStats);
+    } else if (role == UserRole.economist) {
+      return _EconomistStatsWidgets(stats: state.economistStats);
     } else if (role == UserRole.teacher || role == UserRole.head_teacher) {
-      return _TeacherActiveSessionCard(session: state.teacherSession);
+      return _TeacherWeeklySchedule(schedule: state.weeklySchedule);
     }
     return const SizedBox.shrink();
   }
@@ -264,10 +281,9 @@ class DashboardScreen extends ConsumerWidget {
         ]);
         break;
       case UserRole.general_supervisor:
-      case UserRole.field_supervisor:
         commonItems.addAll([
           DashboardMenuItem(
-            title: 'الغيابات',
+            title: 'الغيابات (طلاب)',
             icon: Icons.event_busy_rounded,
             color: const Color(0xFFEF4444),
           ),
@@ -277,9 +293,33 @@ class DashboardScreen extends ConsumerWidget {
             color: const Color(0xFF3B82F6),
           ),
           DashboardMenuItem(
-            title: 'الطلبات',
+            title: 'الملاحظات والسلوك',
+            icon: Icons.psychology_rounded,
+            color: const Color(0xFFF59E0B),
+          ),
+          DashboardMenuItem(
+            title: 'الطلبات والتبليغات',
             icon: Icons.assignment_rounded,
             color: const Color(0xFF10B981),
+          ),
+        ]);
+        break;
+      case UserRole.field_supervisor:
+        commonItems.addAll([
+          DashboardMenuItem(
+            title: 'رصد السلوك',
+            icon: Icons.add_comment_rounded,
+            color: const Color(0xFFF59E0B),
+          ),
+          DashboardMenuItem(
+            title: 'تصاريح الدخول',
+            icon: Icons.badge_rounded,
+            color: const Color(0xFF3B82F6),
+          ),
+          DashboardMenuItem(
+            title: 'الطلبات',
+            icon: Icons.assignment_rounded,
+            color: const Color(0xFF3B82F6),
           ),
         ]);
         break;
@@ -287,7 +327,7 @@ class DashboardScreen extends ConsumerWidget {
       case UserRole.head_teacher:
         commonItems.addAll([
           DashboardMenuItem(
-            title: 'الغيابات',
+            title: 'تسجيل الغياب',
             icon: Icons.event_busy_rounded,
             color: const Color(0xFFEF4444),
           ),
@@ -302,26 +342,41 @@ class DashboardScreen extends ConsumerWidget {
             color: const Color(0xFF6366F1),
           ),
           DashboardMenuItem(
-            title: 'الطلبات',
+            title: 'دفتر النصوص',
+            icon: Icons.menu_book_rounded,
+            color: const Color(0xFF8B5CF6),
+          ),
+          DashboardMenuItem(
+            title: 'طلباتي',
             icon: Icons.assignment_rounded,
             color: const Color(0xFF3B82F6),
           ),
         ]);
         break;
-      // Add other roles as needed...
-      default:
+      case UserRole.economist:
         commonItems.addAll([
           DashboardMenuItem(
-            title: 'الغيابات',
-            icon: Icons.event_busy_rounded,
+            title: 'إدارة الطلبات',
+            icon: Icons.inventory_2_rounded,
+            color: const Color(0xFF10B981),
+          ),
+          DashboardMenuItem(
+            title: 'الصيانة والمرافق',
+            icon: Icons.build_rounded,
             color: const Color(0xFFEF4444),
           ),
           DashboardMenuItem(
-            title: 'الطلبات',
-            icon: Icons.assignment_rounded,
+            title: 'الميزانية (تجريبي)',
+            icon: Icons.account_balance_wallet_rounded,
+            color: const Color(0xFFF59E0B),
+          ),
+          DashboardMenuItem(
+            title: 'الغيابات',
+            icon: Icons.event_busy_rounded,
             color: const Color(0xFF3B82F6),
           ),
         ]);
+        break;
     }
 
     return commonItems
@@ -330,7 +385,7 @@ class DashboardScreen extends ConsumerWidget {
             item: item,
             onTap: () {
               // Map icons/titles to screens
-              if (item.title.contains('الغيابات'))
+              if (item.title.contains('الغياب'))
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const AttendanceScreen()),
@@ -352,7 +407,8 @@ class DashboardScreen extends ConsumerWidget {
                     builder: (_) => const AccountManagementScreen(),
                   ),
                 );
-              if (item.title.contains('الملاحظات'))
+              if (item.title.contains('السلوك') ||
+                  item.title.contains('الملاحظات'))
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const ObservationsScreen()),
@@ -366,6 +422,19 @@ class DashboardScreen extends ConsumerWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const CouncilScreen()),
+                );
+              if (item.title.contains('النصوص'))
+                // For Cahier de Texte from menu, we might need a generic or session-picker screen
+                // For now, push a placeholder if no session_id is active
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const LessonLogScreen(
+                      sessionId: 'menu',
+                      className: 'N/A',
+                      subject: 'N/A',
+                    ),
+                  ),
                 );
             },
           ),
@@ -444,7 +513,7 @@ class _DashboardCard extends StatelessWidget {
 }
 
 class _DirectorStatsWidgets extends StatelessWidget {
-  final DashboardStats? stats;
+  final DirectorStats? stats;
   const _DirectorStatsWidgets({this.stats});
 
   @override
@@ -541,93 +610,358 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _TeacherActiveSessionCard extends StatelessWidget {
-  final ActiveSession? session;
-  const _TeacherActiveSessionCard({this.session});
+class _SupervisorStatsWidgets extends StatelessWidget {
+  final SupervisorStats? stats;
+  const _SupervisorStatsWidgets({this.stats});
 
   @override
   Widget build(BuildContext context) {
-    if (session == null) return const SizedBox.shrink();
+    if (stats == null) return const Center(child: CircularProgressIndicator());
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'نظرة عامة (المراقبين)',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1E293B),
+          ),
         ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF3B82F6).withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _StatCard(
+                label: 'غيابات اليوم',
+                value: '${stats!.totalAbsencesToday}',
+                icon: Icons.group_off_rounded,
+                color: Colors.red,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _StatCard(
+                label: 'تصاريح نشطة',
+                value: '${stats!.activeEntryPasses}',
+                icon: Icons.confirmation_number_rounded,
+                color: Colors.blue,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _StatCard(
+                label: 'تقارير سلوك',
+                value: '${stats!.behavioralIncidents}',
+                icon: Icons.report_problem_rounded,
+                color: Colors.orange,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _EconomistStatsWidgets extends StatelessWidget {
+  final EconomistStats? stats;
+  const _EconomistStatsWidgets({this.stats});
+
+  @override
+  Widget build(BuildContext context) {
+    if (stats == null) return const Center(child: CircularProgressIndicator());
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'إدارة الموارد (المقتصد)',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1E293B),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.timer_rounded, color: Colors.white, size: 20),
-              SizedBox(width: 8),
-              Text(
-                'حصتك الآن',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _StatCard(
+                label: 'طلبات مواد',
+                value: '${stats!.pendingMaterialRequests}',
+                icon: Icons.inventory_rounded,
+                color: Colors.teal,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _StatCard(
+                label: 'صيانة جارية',
+                value: '${stats!.ongoingMaintenance}',
+                icon: Icons.handyman_rounded,
+                color: Colors.brown,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _StatCard(
+                label: 'استهلاك الميزانية',
+                value: '${stats!.budgetUtilization.toStringAsFixed(0)}%',
+                icon: Icons.account_balance_rounded,
+                color: Colors.indigo,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _TeacherWeeklySchedule extends StatefulWidget {
+  final List<ScheduleItem> schedule;
+  const _TeacherWeeklySchedule({required this.schedule});
+
+  @override
+  State<_TeacherWeeklySchedule> createState() => _TeacherWeeklyScheduleState();
+}
+
+class _TeacherWeeklyScheduleState extends State<_TeacherWeeklySchedule>
+    with SingleTickerProviderStateMixin {
+  int selectedDay = DateTime.now().weekday; // 1 = Mon ... 7 = Sun
+  // Convert to 0-indexed Sat-Thu or Sun-Thu based on project needs.
+  // Assuming 0=Sat, 1=Sun, 2=Mon, 3=Tue, 4=Wed, 5=Thu
+  late int activeDayIndex;
+  late AnimationController _pulseController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+
+    // Map DateTime.weekday to 0-indexed Algerian week (Sun=1, Mon=2, etc)
+    // Here we'll just use 0-4 for Sun-Thu for simplicity in mock
+    activeDayIndex = (DateTime.now().weekday % 7);
+    selectedDay = activeDayIndex;
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dayNames = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
+    final daySchedule = widget.schedule
+        .where((s) => s.dayIndex == selectedDay)
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'جدول التوقيت الأسبوعي',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1E293B),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Day Picker
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: List.generate(dayNames.length, (index) {
+              final isSelected = selectedDay == index;
+              return Padding(
+                padding: const EdgeInsets.only(left: 8.0),
+                child: ChoiceChip(
+                  label: Text(dayNames[index]),
+                  selected: isSelected,
+                  onSelected: (val) => setState(() => selectedDay = index),
+                  selectedColor: const Color(0xFF3B82F6),
+                  labelStyle: TextStyle(
+                    color: isSelected ? Colors.white : Colors.black87,
+                  ),
                 ),
-              ),
-            ],
+              );
+            }),
           ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'القسم: ${session!.className}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+        ),
+        const SizedBox(height: 16),
+        if (daySchedule.isEmpty)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Text('لا توجد حصص في هذا اليوم'),
+            ),
+          )
+        else
+          ...daySchedule.map(
+            (item) => _ScheduleItemCard(
+              item: item,
+              isActive: _isItemActive(item),
+              animation: _pulseController,
+            ),
+          ),
+      ],
+    );
+  }
+
+  bool _isItemActive(ScheduleItem item) {
+    if (item.dayIndex != activeDayIndex) return false;
+    final now = DateTime.now();
+    final currentTime =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    return currentTime.compareTo(item.startTime) >= 0 &&
+        currentTime.compareTo(item.endTime) <= 0;
+  }
+}
+
+class _ScheduleItemCard extends StatelessWidget {
+  final ScheduleItem item;
+  final bool isActive;
+  final Animation<double> animation;
+
+  const _ScheduleItemCard({
+    required this.item,
+    required this.isActive,
+    required this.animation,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, child) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: isActive ? Colors.white : Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isActive
+                  ? Colors.blue.withOpacity(0.5 + 0.5 * animation.value)
+                  : Colors.transparent,
+              width: 2,
+            ),
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: Colors.blue.withOpacity(0.1),
+                      blurRadius: 10 * animation.value,
+                      spreadRadius: 2,
                     ),
-                  ),
-                  Text(
-                    'المادة: ${session!.subject} | القاعة: ${session!.room}',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
-                      fontSize: 14,
+                  ]
+                : [],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Column(
+                  children: [
+                    Text(
+                      item.startTime,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                  ),
-                ],
-              ),
-              ElevatedButton.icon(
-                onPressed: () {
-                  // Navigate to Attendance or Start Session
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AttendanceScreen()),
-                  );
-                },
-                icon: const Icon(Icons.play_arrow_rounded),
-                label: const Text('بدء الحصة'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF2563EB),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    const Icon(
+                      Icons.arrow_downward,
+                      size: 12,
+                      color: Colors.grey,
+                    ),
+                    Text(
+                      item.endTime,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 16),
+                const VerticalDivider(),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'القسم: ${item.className}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        '${item.subject} | قاعة ${item.room}',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
+                if (!isActive)
+                  const Icon(Icons.lock_outline, color: Colors.grey, size: 20)
+                else
+                  Column(
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const AttendanceScreen(),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text('تسجيل الغياب'),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => LessonLogScreen(
+                                sessionId: item.id,
+                                className: item.className,
+                                subject: item.subject,
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.edit_note, size: 18),
+                        label: const Text(
+                          'دفتر النصوص',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
